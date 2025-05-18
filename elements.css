@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Advent+Pro:ital,wght@0,100..900;1,100..900&family=Audiowide&display=swap');
+:root {
+  --sun-core: #b0dff4;
+  --beam-color: rgba(176, 223, 244, 0.4); /* Soft blue tone */
+}
+
+* {
+  scrollbar-color: #b0dff4 #2e383c94; /* thumb color, track color */
+  scrollbar-width: thin; /* Options: auto, thin, none */
+  color: #b0dff4;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+/* Hyperlinks */
+a:link {
+  color: #b0dff4;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: none;
+}
+
+a:visited {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: none;
+}
+
+a:hover {
+  color: #b0dff4;
+  background-color: transparent;
+  text-decoration: underline;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+a:active {
+  color: #98aeb8;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+/* Footer */
+footer{
+  position: absolute;
+  top: 110%;
+  left: 1%;
+  color: #000;
+}
+
+#sitesearch{
+  background-color: #242424;
+}
+
+#sitesearch-btn{
+  background-color: #242424;
+}
