@@ -1,0 +1,1506 @@
+/* All Pages */
+@import url('https://fonts.googleapis.com/css2?family=Advent+Pro:ital,wght@0,100..900;1,100..900&family=Audiowide&display=swap');
+
+:root {
+  --sun-core: #b0dff4;
+  --beam-color: rgba(176, 223, 244, 0.4); /* Soft blue tone */
+}
+
+* {
+  scrollbar-color: #b0dff4 #2e383c94; /* thumb color, track color */
+  scrollbar-width: thin; /* Options: auto, thin, none */
+  color: #b0dff4;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+body{
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #000000 80%, #48585f, #b0dff4);
+  height: 100vh;
+  overflow: hidden;
+}
+
+#audiowide{
+  font-family: "Audiowide";
+  text-shadow: 0 0 5px #b0dff4;
+}
+  
+a:link {
+  color: #b0dff4;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: none;
+}
+
+a:visited {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: none;
+}
+
+a:hover {
+  color: #b0dff4;
+  background-color: transparent;
+  text-decoration: underline;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+a:active {
+  color: #98aeb8;
+  background-color: transparent;
+  text-decoration: none;
+  text-shadow: 0 0 5px #b0dff4;
+}
+
+/* Header */
+#logo{ 
+  width: 5vw;
+  height: 5vw;
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  transform: translate(-50%);
+  z-index: 2;
+}
+
+.banner{
+  width: 50%;
+  height: 10%;
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translate(-50%);
+  text-align: center;
+  border: solid 2px;
+  background-color: #121212;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+#runnertext{
+  font-size: 1.5vw;
+  font-family: "advent pro";
+  letter-spacing: .5px;
+  text-shadow: none;
+}
+
+/* Footer */
+footer{
+  position: absolute;
+  top: 110%;
+  left: 1%;
+  color: #000;
+}
+
+#sitesearch{
+  background-color: #242424;
+}
+
+#sitesearch-btn{
+  background-color: #242424;
+}
+
+/* Landing Page */
+.landingBg{
+  background: #242424;
+}
+
+#landingModal{
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translate(-50%);
+  min-width: 75%;
+  max-height: 53%;
+  border: solid 3px #b0dff4;
+  z-index: 2;
+  background-color: #242424c9;
+  display: block;
+  color: #b0dff4;
+  text-align: center;
+  padding: 4px;
+}
+
+#landingModal h1 {
+  font-family: "Audiowide", serif;
+  font-size: 5vw;
+  margin-top: -1vw;
+}
+
+#landingModal p {
+  font-size: 2vw;
+  margin-top: -1.5vw;
+} 
+
+#landinglogo{ 
+  max-width: 15%;
+  height: auto;
+  position: relative;
+  margin-top: 1.5vw;
+}
+
+#chattableDiv{
+  position: absolute;
+  top: 1%;
+  margin-right: 93%;
+  width: auto;
+  height: auto;
+  background-color: #b0dff4;
+}
+
+#chattableLink{
+  max-width: 100%;
+  height: auto;
+  mix-blend-mode: luminosity;
+}
+
+#hexagon-wall{
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translate(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 1;
+  animation: glowingBreath 8s linear infinite;
+}
+
+@keyframes glowingBreath{
+  0%{
+      filter: hue-rotate(0deg);
+      filter: drop-shadow(0px 0px 10px rgba(176, 223, 244, 0));
+  }
+  50%{
+      filter: hue-rotate(360deg);
+      filter: drop-shadow(0px 0px 10px #b0dff4);
+  }
+  100%{
+      filter: hue-rotate(0deg);
+      filter: drop-shadow(0px 0px 10px rgba(176, 223, 244, 0));
+  }
+}
+          
+.wallRow{
+  position: relative;
+  display: flex;
+  margin-top: -1.5vw;
+}
+  
+.wallRow:nth-child(even){
+  left: -2.7vw;
+  margin-top: -1.5vw;
+}
+  
+.hexagon{
+  position: relative;
+  height: 5.75vw;
+  width: 5.25vw;
+  background: rgba(11, 12, 12, 0.6); 
+  clip-path: polygon(
+    50% 0%, 
+    100% 25%, 
+    100% 75%, 
+    50% 100%, 
+    0% 75%, 
+    0% 25%
+  );
+  transition: .2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #b0dff4;
+  font-size: 1.5vw;
+  margin: .1vw;
+  
+}
+  
+.hexagon:hover{
+  transition: 0s;
+  background: rgba(176, 223, 244, .6);
+  cursor: none;
+}
+  
+.hexagon.active {
+  font-weight: 900;
+  background: rgba(176, 223, 244, .7);
+  cursor: default;
+}
+
+/* Main Page */
+#weatherSelect{
+  width: 5vw;
+  height: 5vw;
+  position: absolute;
+  margin: 20px 20px;
+  top: 0%;
+  left: 25%;
+  background: rgba(176, 223, 244, 0.6);
+  border: solid 1px #b0dff4;
+  color: #b0dff4;
+  font-family: "advent pro";
+  font-size: 1vw;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.weatherWrap {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+}
+
+.sunny {
+  width: 400px;
+  height: 400px;
+  position: absolute;
+  top: -150px;
+  left: -50px;
+  background: radial-gradient(circle, var(--sun-core), var(--sun-core));
+  border-radius: 50%;
+  animation: sunnyPulse 20s ease-in-out infinite;
+  z-index: 1;
+}
+
+.sunny::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, var(--beam-color) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.beams {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--beam-color) 0deg 10deg,
+    transparent 10deg 20deg,
+    var(--beam-color) 20deg 30deg,
+    transparent 30deg 40deg,
+    var(--beam-color) 40deg 50deg,
+    transparent 50deg 60deg,
+    var(--beam-color) 60deg 70deg,
+    transparent 70deg 80deg,
+    var(--beam-color) 80deg 90deg,
+    transparent 90deg 100deg,
+    var(--beam-color) 100deg 110deg,
+    transparent 110deg 120deg,
+    var(--beam-color) 120deg 130deg,
+    transparent 130deg 140deg,
+    var(--beam-color) 140deg 150deg,
+    transparent 150deg 160deg,
+    var(--beam-color) 160deg 170deg,
+    transparent 170deg 180deg,
+    var(--beam-color) 180deg 190deg,
+    transparent 190deg 200deg,
+    var(--beam-color) 200deg 210deg,
+    transparent 210deg 220deg,
+    var(--beam-color) 220deg 230deg,
+    transparent 230deg 240deg,
+    var(--beam-color) 240deg 250deg,
+    transparent 250deg 260deg,
+    var(--beam-color) 260deg 270deg,
+    transparent 270deg 280deg,
+    var(--beam-color) 280deg 290deg,
+    transparent 290deg 300deg,
+    var(--beam-color) 300deg 310deg,
+    transparent 310deg 320deg,
+    var(--beam-color) 320deg 330deg,
+    transparent 330deg 340deg,
+    var(--beam-color) 340deg 350deg,
+    transparent 350deg 360deg
+  );
+  opacity: 0.4;
+  animation: sunSpin 10s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes sunSpin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes sunnyPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.snow,
+.snow:before,
+.snow:after {
+  position: absolute;
+  top: -650px;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-image: 
+    radial-gradient(4px 4px at 100px 50px, #b0dff4,  transparent),
+    radial-gradient(6px 6px at 200px 150px, #b0dff4, transparent),
+    radial-gradient(3px 3px at 300px 250px, #b0dff4, transparent),
+    radial-gradient(4px 4px at 400px 350px, #b0dff4, transparent),
+    radial-gradient(6px 6px at 500px 100px, #b0dff4, transparent),
+    radial-gradient(3px 3px at 50px 200px, #b0dff4, transparent),
+    radial-gradient(4px 4px at 150px 300px, #b0dff4, transparent),
+    radial-gradient(6px 6px at 250px 400px, #b0dff4, transparent),
+    radial-gradient(3px 3px at 350px 500px, #b0dff4, transparent);
+  background-size: 650px 650px;
+  animation: snowfall 6s linear infinite;
+  content: "";
+}
+
+.snow:after {
+  margin-left: -250px;
+  opacity: 0.5;
+  filter: blur(2px);
+  animation-duration: 6s;
+  animation-direction: reverse;
+}
+
+.snow:before {
+  margin-left: -350px;
+  opacity: 0.7;
+  filter: blur(1px);
+  animation-duration: 9s;
+  animation-direction: reverse;
+}
+
+@keyframes snowfall {
+  to {
+    translate: 0 650px;
+  }
+}
+
+#homepage{
+  position: absolute;
+  display: flex;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+#modeSelectNav{
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%);
+  justify-content: center;
+  display: flex;
+  flex-direction: row;
+}
+
+#frxstCard{
+  height: auto;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+  border: solid 2px #b0dff4;
+  box-shadow: 0 0 30px rgba(176, 223, 244, 0.6);
+}
+
+
+#specterCard{
+  height: auto;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+}
+
+#networkCard{
+  height: auto;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+}
+
+#logCard{
+  height: auto;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+}
+
+@keyframes pan-overlay {
+  from {
+    background-position: 0% 0%;
+  }
+  
+  to {
+    background-position: 0% -100%;
+  }
+}
+
+.screen-overlay {    
+  background: linear-gradient(
+    #b0def45e,
+    #b0def45e 2px,
+    transparent 3px,
+    transparent 9px
+  );
+  background-size: 100% 9px;
+  height: 100%;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+  animation: pan-overlay 22s infinite linear;
+  z-index: 2;
+  overflow: hidden;
+  position: absolute;
+  top: 0%;
+  border: solid 2px;
+}
+
+
+/* Version History */
+.vHistory{
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%);
+  width: 100%;
+  max-width: 50vw;
+  max-height: 20vw;
+  font-size: 1vw;
+  letter-spacing: .1vw;
+  overflow: auto;
+  font-family: "Advent Pro";
+}
+
+
+/* Comment Section */
+#chattable{
+  width: 20%;
+  font-family: "advent pro";
+  margin-left: 78%;
+  margin-top: 6%;
+}
+
+
+/* Sub Pages */
+.crumbs {
+  position: absolute;
+  top: 10%;
+  margin-left: .25em;
+  z-index: 1;
+}
+
+.crumbs ol {
+  list-style-type: none;
+  padding-left: 0px;
+}
+  
+.crumb {
+  display: inline-block;
+}
+
+.crumb a::after {
+  display: inline-block;
+  color: #b0dff4;
+  content: '>';
+  font-size: 80%;
+  font-weight: bold;
+  padding: 0px 10px 0px 10px;
+}
+
+/* Technomancer Page */
+#aboutDisplay{
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  top: 35%;
+  display: flex;
+}
+
+#avatar{
+  height: auto;
+  max-height: 20vw;
+  width: 100%;
+  max-width: 14vw;
+  border: solid 2px #b0dff4;
+  box-shadow: 0 0 30px rgba(176, 223, 244, 0.6);
+}
+
+#keyblade{
+  position: absolute;
+  top: 21vw;
+  font-family: "Advent Pro";
+}
+
+#empoleon{
+  position: absolute;
+  top: 22.5vw;
+  font-family: "Advent Pro";
+}
+
+#gpx{
+  position: absolute;
+  top: 23vw;
+
+  font-family: "Advent Pro";
+}
+
+#aboutTabs{
+  height: auto;
+  max-height: 20vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  font-family: "audiowide";
+  
+}
+
+#astroTab, #favesTab, #skillsTab, #interestsTab, #bioTab{
+  height: auto;
+  max-height: 2vw;
+  width: 15vw;
+  border: solid 1.5px #b0dff4;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 1.5vw;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+}
+
+
+#bio, #interests, #skills, #favorites, #astrology{
+  position: absolute;
+  left: 50%;
+  width: 100%;
+  max-width: 40vw;
+  height: auto;
+  max-height: 24vw;
+  padding: .75vw;
+  background: rgba(22, 22, 22, 0.4);
+  border: solid 2px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  font-size: 1.5vw;
+  visibility: visible;
+  overflow: auto;
+  font-family: "advent pro";
+  letter-spacing: .05vw;
+}
+
+#interests, #skills, #favorites, #astrology{
+  visibility: hidden;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#interests li, #skills li, #favorites li, #astrology li{
+  padding: .45vw;
+  list-style-type: none;
+}
+
+#interests, #favorites{
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+}
+
+#skills, #astrology{
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#favorites{
+  align-items: baseline;
+}
+
+#aboutFoot{
+  position: absolute;
+  top: 90%;
+  left: 1%;
+  color: #000;
+}
+
+#scrollLeft{
+  transform: rotate(-90deg);
+}
+
+#scrollRight{
+  transform: rotate(90deg);
+}
+
+#arrowhalf{
+  height: 20px;
+  width: 2px;
+  background-color:#b0dff4;
+  animation: anim 2s infinite;
+}
+
+#arrowhalf:nth-of-type(1){
+  position: absolute;
+  left: 7px;
+  transform: rotate(-45deg);
+}
+
+#arrowhalf:nth-of-type(2){
+  position: absolute;
+  left: -7px;
+  transform: rotate(45deg);
+}
+
+#top{
+  position: absolute;
+  top: 0px;
+}
+
+#mid{
+  position: absolute;
+  top: 15px;
+}
+
+#bottom{
+  position: absolute;
+  top: 30px;
+}
+@keyframes anim {
+    0%
+    { 
+        opacity: 1;
+    }
+  
+    50%
+    { 
+        opacity: 0;
+    }
+    100%
+    { 
+        opacity: 1;
+    }
+}
+
+/* Network Page */
+.iconLinks{
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%);
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.icon{
+  max-height: 5vw;
+}
+
+#instaIcon{
+  position: relative;
+  top: 5vw;
+  left: 5vw;
+}
+
+#pinterestIcon{
+  position: relative;
+  top: 10vw;
+  left: 2.5vw;
+}
+
+#redditIcon{
+  position: relative;
+  top: 5vw;
+}
+
+#discordIcon{
+  position: relative;
+  top: 10vw;
+  left: -2.5vw;
+}
+
+#pokemongoIcon{
+  position: relative;
+  top: 5vw;
+  left: -5vw;
+}
+
+#paradigmLink{
+  width: 100%;
+  max-width: 20vw;
+  height: auto;
+  max-height: 12vw;
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%);
+  border: solid 2px;
+  background: rgba(176, 223, 244, 0.3);
+  padding: 1.5vw; 
+  text-align: center;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  font-size: 1.5vw;
+  font-family: "advent pro";
+  letter-spacing: .05vw;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+}
+
+#paradigmbtn{
+  width: 4.5vw;
+  align-self: center;
+}
+
+
+#paradigmLink textarea {
+  max-width: 10vw;
+  height: 2vw;
+  font-size: 1.5vw;
+  background-color: #242424;
+}
+
+/* Specter.EXE Page */
+#specterV2{
+  max-width: 14vw;
+  height: auto;
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+#info{
+  position: absolute;
+  top: 30%;
+  left: 35%;
+  transform: translate(-50%);
+  font-size: 1.3vw;
+}
+
+.chip{
+  max-width: 5vw;
+  height: auto;
+  margin-top: 20px;
+}
+
+#thoughtbox{
+  max-width: 26vw;
+  height: auto;
+  position: absolute;
+  top: 20%;
+  left: 67%;
+  transform: translate(-50%);
+}
+
+#specterText{
+  max-width: 21vw;
+  height: auto;
+  position: absolute;
+  top: 25%;
+  left: 58%;
+  font-size: 1.5vw;
+  font-family: "advent pro";
+  letter-spacing: .5px;
+  text-shadow: none;
+}
+
+#interactiveDisplay{
+  width: 20vw;
+  height: 10vw;
+  border: solid 2px;
+  position: absolute;
+  top: 35%;
+  left: 59%;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  visibility: hidden;
+}
+
+#gridBattlerDisplay{
+  width: 20vw;
+  height: 10vw;
+  border: solid 2px;
+  position: absolute;
+  top: 35%;
+  left: 59%;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  visibility: hidden;
+}
+
+#memoryMatchThumbnail{
+  width: 20vw;
+  height: 10vw;
+  border: solid 2px;
+  position: absolute;
+  top: 35%;
+  left: 59%;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  
+}
+
+/* Interactive Shrine */
+#interactivePgCrumbs{
+  position: absolute;
+  top: 15%;
+}
+
+#gameControls{
+  width: 75vw;
+  position: absolute;
+  top: 28%; 
+  left: 5%;
+  padding: 10px;
+  display: flex;
+  justify-content: space-evenly;
+}
+
+#arena{
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+
+#health-bar {
+  width: auto;
+  background: rgba(176, 223, 244, .2);
+  border: solid 1px #b0def498;
+  padding: 10px;
+}
+
+#energy-bar {
+  width: 8vw;
+  height: .5vw;
+  background: rgba(176, 223, 244, .2);
+  border: solid 1px #b0def498;
+  padding: 1px;
+}
+
+#energy-bar .bar {
+  height: 100%;
+  background-color: #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+}
+
+.energy-bar .bar span {
+  display: block;
+  padding: 5px;
+  color: white;
+  text-align: center;
+}
+
+#invList {
+  width: auto;
+  height: 10vw;
+  padding-top: 10px;
+}
+
+#actionText{
+  position: absolute;
+  top: 2vw;
+  left: 15vw;
+  margin-left: 5px;
+  color: white;
+  font-size: 18px;
+}
+
+/* Escape Overlay */
+#escOverlay{
+  display: none;
+}
+
+#atkUpBtn, #defUpBtn, #agiUpBtn {
+    width: 10px;
+    height: 10px;
+    position: relative;
+    background: rgba(176, 223, 244, .2);
+    border: solid 1px #b0dff4;
+    display: none;
+  }
+  
+  #atkUpBtn{
+    top: 165px;
+    left: 155px;
+  }
+  
+  #defUpBtn{
+    top: 195px;
+    left: 165px;
+  }
+  
+  #agiUpBtn{
+    top: 225px;
+    left: 160px;
+  }
+
+
+
+#gameInfo {
+  width: 600px;
+  height: 140px;
+  position: absolute;
+  top: 65%;
+  left: 50%;
+  translate: -50%;
+  border: solid 2px #b0dff4; 
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  background: rgb(36, 36, 36, .9);
+}
+
+#location {
+  margin-top: -.1%;
+  font-size: 24px;
+  margin-left: 5px;
+  color: #b0dff4;
+}
+
+#gameText{
+  margin-top: -3%;
+  margin-left: 5px;
+  color: white;
+  font-size: 18px;
+}
+
+#timer{
+  width: 100px;
+  height: 100px; 
+  background-color: #121212;
+  border: solid 2px white; 
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  color: white;
+  font-size: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+}
+
+#displayText{
+  width: 100px;
+  height: 100px; 
+  border: solid 2px white;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);  
+  color: white;
+  font-size: 40px;  
+  align-items: center; 
+  justify-content: center; 
+  display: none;
+}
+
+#shop{
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  top: 250px;
+  left: 50%;
+  translate: -50%;
+  border: solid 2px #b0dff4; 
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  background: rgb(36, 36, 36, .9);
+  display: none;
+}
+
+#skillbutton1, #skillbutton2, #skillbutton3, 
+#skillbutton4, #skillbutton5, #skillbutton6,
+#smPotBtn, #buyBtn, #addBtn, #subBtn {
+    background: rgba(176, 223, 244, .2);
+    border: solid 1px #b0def498;
+    border-radius: 5px;
+    padding: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    cursor: pointer;
+    color: #b0dff4;
+  }
+
+#skillbutton1:hover, #skillbutton2:hover, #skillbutton3:hover, 
+#skillbutton4:hover, #skillbutton5:hover, #skillbutton6:hover,
+#smPotBtn:hover, #buyBtn:hover, #addBtn:hover, #subBtn:hover {
+    border: solid 1.5px #b0dff4;
+    box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  }
+
+#skillbutton1, #skillbutton2, #skillbutton3, 
+#skillbutton4, #skillbutton5, #skillbutton6 {
+  display: none;
+  background: rgb(36, 36, 36, .9);
+}
+
+#smPotBtn {
+  position: absolute;
+  left: 1090px;
+  top: 280px;
+  display: block;
+}
+
+#buyBtn {
+  position: absolute;
+  top: 65%;
+  left: 50%;
+  translate: -50%;
+  display: none;
+}
+
+#addBtn, #subBtn {
+  position: absolute;
+  top: 17.5vw;
+  left: 44vw;
+  margin-left: 4px;
+  padding: 0px 9px 25px 9px;
+  width: auto;
+  height: 1vw;
+  display: none;
+}
+
+#subBtn {
+  left: 42vw;
+}
+
+#rewards {
+  width: 100%;
+  max-width: 500px;
+  height: 100px;
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  border: solid 2px #b18d19; 
+  padding: 0px 0px 30px 10px;
+  box-shadow: 0 0 10px rgba(177, 141, 25, 0.6);
+  background: rgba(177, 141, 25, .3);
+  color: #b18d19;
+  display: none;
+}
+
+/**************************
+==== Grid Battler Game ====
+===== Test.js Version =====
+**************************/
+
+#gridInstance {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(4vw, 8vh)); /* Responsive columns */
+  grid-template-rows: repeat(9, minmax(4vw, 8vh)); /* Responsive rows */
+  gap: 0.5vh; /* Adjusted gap */
+  margin: 5vh auto;
+  width: fit-content;
+  background-color: #444;
+  padding: 1vh;
+  border-radius: 1vh;
+  border: solid 2px #b0dff4;
+}
+
+.square {
+  width: 100%;
+    height: 100%;
+    background-color: #424242;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2vw; /* Adjust font size dynamically */
+    color: white;
+    border: 0.2vh solid #b0dff4;
+    box-shadow: 0 0 10px rgba(176, 223, 244, .6);
+}
+
+#matchData {
+  width: 100%;
+  max-width: 250px; /* Prevents it from becoming too large */
+  max-height: 250px;
+  height: 100%;
+  padding: 2vh;
+  position: absolute;
+  top: 10%;
+  left: 2%;
+  font-size: clamp(12px, 1vw, 18px); /* Ensures readable font size */
+  color: #b0dff4;
+  border: solid 2px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, .6);
+  background: rgba(36, 36, 36, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+
+#shardUI{
+  position: absolute;
+  top: 40%;
+  left: 2%;
+  width: 100%;
+  max-width: 500px;
+  border: solid 2px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, .6);
+  background: rgba(36, 36, 36, 0.9);
+  padding: 2rem;
+  font-size: clamp(12px, 1vw, 18px); /* Ensures readable font size */
+}
+
+.shards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.shard-chip {
+  background: #222;
+  border: 2px solid #b0dff4;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.shard-chip:hover {
+  background: #b0dff4;
+  color: #000;
+}
+
+#surrender {
+  position: absolute;
+  left: 20%;
+  top: 10%;
+  width: 100%;
+  max-width: 100px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1vh;
+  background: rgb(36, 36, 36, .9);
+  border: solid 1px #b0def498;
+  border-radius: 5px;
+  padding: 10px;
+  margin-left: 20px;
+  margin-bottom: 10px;
+  -webkit-transition-duration: 0.4s; /* Safari */
+  transition-duration: 0.4s;
+  cursor: pointer;
+  color: #b0dff4;
+}
+
+#surrender:hover {
+  border: solid 1.5px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+}
+
+/* Player Square */
+.square.player { 
+  background-color: #006c9e70;
+  border: 2px solid #006D9E;
+}
+
+/* Enemy Square */
+.square.enemy { 
+  background-color: #4d1a1a70; 
+  border: 2px solid #4d1a1a;
+}  
+.square.shard {
+  background-color: #ffd90070;
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 2px 2px #ffd700;
+}
+
+.selected {
+  box-shadow: 0 0 2px 2px rgba(255, 255, 255, 1);
+}
+
+.playerSelected {
+  box-shadow: 0 0 2px 2px rgba(176, 223, 244, 1);
+}
+
+.enemySelected {
+  box-shadow: 0 0 2px 2px rgba(200, 25, 25, 1);
+}
+
+.attackable{
+  background-color: rgba(184, 107, 40, .6); /* semi-transparent white */
+}
+
+.targeted{
+  background-color: rgba(38, 12, 80, 0.6); /* semi-transparent white */
+}
+
+.hovered {
+  background-color: #616161; /* semi-transparent white */
+  z-index: 4;
+}
+
+.available {
+  background-color: #4E5C63; /* semi-transparent white */
+  z-index: 3;
+}
+
+.trail {
+  animation: fadeoutAnim 1.5s;
+}
+
+.combat-log {
+  position: absolute;
+  top: 18%;
+  left: 16.5%;
+  max-width: 250px;
+  height: 150px;
+  background: rgb(36, 36, 36, .9);
+  border: solid 1px #b0def498;
+  box-shadow: 0 0 10px rgba(176, 223, 244, .6);
+  font-family: monospace;
+  font-size: 12px;
+  overflow-y: scroll;
+  padding: 10px;
+}
+
+
+
+.floating-text {
+  position: absolute;
+  color: red;
+  font-weight: bold;
+  animation: floatUp 3s forwards;
+  pointer-events: none;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translate(20px, -20px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(20px, -80px);
+  }
+}
+
+@keyframes fadeoutAnim {
+  from { 
+    background-color: rgba(0, 255, 255, 0.15); /* icy, faint glow */
+  }
+
+  to { 
+    background-color: #424242; /* Default */
+  }
+}
+
+/* Mobile Optimization */
+@media (max-width: 600px) {
+  #board {
+      grid-template-columns: repeat(9, 8vw);
+      grid-template-rows: repeat(9, 8vw);
+  }
+
+  .square {
+      font-size: 2vw;
+  }
+}
+
+#playerQuickShow, #enemyQuickShow {
+  width: 3vw;
+  height: 3vw;
+  position: absolute;
+  top: -60%;
+  left: 120%;
+  border: solid 2px #b0dff4; 
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  background: rgba(40, 43, 44, 0.9);
+  color: #b0dff4;
+  display: block;
+}
+
+.tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  border: solid 2px #b0dff4; 
+  margin: 0px;
+  padding: 0px;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+  background: rgba(176, 223, 244, .3);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 15px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  top: -40%;
+  left: 70%;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+
+
+/* Memory Match */
+#memoryGameBoard{
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  max-width: 750px;
+  height: 600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.numCard {
+  width: 100px;
+  height: 150px;
+  cursor: pointer;
+  perspective: 1000px;
+  margin: 10px;
+}
+
+#cardInner {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.numCard.flip #cardInner {
+  transform: rotateY(180deg);
+}
+
+#cardFront,
+#cardBack {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  backface-visibility: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+#cardFront {
+  color: #b0dff4;
+  background: rgba(176, 223, 244, .2);
+  border: solid 1px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+}
+
+#cardBack {
+  background: rgba(60, 60, 60, 1);
+  border: solid 2px #DDDDDD;
+  box-shadow: 0 0 10px rgba(221, 221, 221, 0.6);
+  transform: rotateY(180deg);
+}
+
+#cardStatus {
+  color: #dddddd;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Add the following styles to your existing CSS rules */
+
+#stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#stat {
+  margin: 0 15px;
+}
+
+#moves {
+  color: #dddddd;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#time {
+  color: #dddddd;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#movesCounted {
+  color: #dddddd;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#timeElapsed {
+  color: #dddddd;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#resetBtn{
+  background: rgba(176, 223, 244, .2);
+  border: solid 1px #b0dff4;
+  box-shadow: 0 0 10px rgba(176, 223, 244, 0.6);
+}
+
+
+/* Media Queries */
+
+/* Mobile */
+@media screen and (max-width: 480px) {
+  #about{
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 100vh;
+  }
+}
