@@ -1,4 +1,4 @@
-.landingBg{
+body{
   background: #242424;
 }
 
@@ -124,4 +124,19 @@
   font-weight: 900;
   background: rgba(176, 223, 244, .7);
   cursor: default;
+}
+
+#orientationOverlay {
+  position: fixed;
+  z-index: 9999;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #242424;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.overlay-content {
+  text-align: center;
 }
