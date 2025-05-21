@@ -23,31 +23,7 @@ body{
   z-index: 2;
 }
 
-.banner{
-  width: 50%;
-  height: 10%;
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translate(-50%);
-  text-align: center;
-  border: solid 2px;
-  background-color: #121212;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  
-}
-
-#runnertext{
-  font-size: 1.5vw;
-  font-family: "advent pro";
-  letter-spacing: .5px;
-  text-shadow: none;
-}
-
-/* Main Page */
+/* Weather Select */
 #weatherSelect{
   width: 5vw;
   height: 5vw;
@@ -71,6 +47,7 @@ body{
   position: fixed;
 }
 
+/* Sunny Mode */
 .sunny {
   width: 400px;
   height: 400px;
@@ -149,7 +126,7 @@ body{
   pointer-events: none;
 }
 
-/* Animations */
+/* Sunny Animations */
 @keyframes sunSpin {
   0%   { transform: translate(-50%, -50%) rotate(0deg); }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
@@ -171,6 +148,7 @@ body{
   }
 }
 
+/* Snow Mode */
 .snow,
 .snow:before,
 .snow:after {
@@ -210,23 +188,41 @@ body{
   animation-direction: reverse;
 }
 
+/* Snow Animation */
 @keyframes snowfall {
   to {
     translate: 0 650px;
   }
 }
 
-#homepage{
+/* Specter.EXE */
+#specterV2{
+  max-width: 14vw;
+  height: auto;
   position: absolute;
-  display: flex;
-  top: 35%;
-  left: 50%;
-  transform: translate(-50%);
+  top: 25%;
+  left: 15%;
 }
 
+#thoughtbox{
+  max-width: 26vw;
+  height: auto;
+  position: absolute;
+  top: 15%;
+  left: 25%;
+}
 
-
-
+#specterText{
+  max-width: 21vw;
+  height: auto;
+  position: absolute;
+  top: 20%;
+  left: 29%;
+  font-size: 1.5vw;
+  font-family: "advent pro";
+  letter-spacing: .5px;
+  text-shadow: none;
+}
 
 /* Version History */
 .vHistory{
@@ -277,4 +273,12 @@ body{
   font-size: 80%;
   font-weight: bold;
   padding: 0px 10px 0px 10px;
+}
+
+#homepage{
+  position: absolute;
+  display: flex;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%);
 }

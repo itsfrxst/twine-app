@@ -1,5 +1,3 @@
-
-
 #info{
   position: absolute;
   top: 30%;
@@ -12,20 +10,6 @@
   max-width: 5vw;
   height: auto;
   margin-top: 20px;
-}
-
-
-
-#specterText{
-  max-width: 21vw;
-  height: auto;
-  position: absolute;
-  top: 25%;
-  left: 58%;
-  font-size: 1.5vw;
-  font-family: "advent pro";
-  letter-spacing: .5px;
-  text-shadow: none;
 }
 
 #interactiveDisplay{
@@ -67,5 +51,4 @@
   flex-direction: column;
   justify-content: end;
   align-items: center;
-  
 }

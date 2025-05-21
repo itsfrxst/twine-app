@@ -1,47 +1,30 @@
-#aboutDisplay{
+#avatarContainer{
   position: absolute;
-  left: 50%;
-  transform: translate(-50%);
-  top: 35%;
-  display: flex;
+  left: 4%;
+  top: 5%;
 }
 
 #avatar{
+  position: absolute;
+  left: 17%;
   height: auto;
-  max-height: 20vw;
+  max-height: 10vw;
   width: 100%;
-  max-width: 14vw;
+  max-width: 7vw;
   border: solid 2px #b0dff4;
   box-shadow: 0 0 30px rgba(176, 223, 244, 0.6);
-}
-
-#keyblade{
-  position: absolute;
-  top: 21vw;
-  font-family: "Advent Pro";
-}
-
-#empoleon{
-  position: absolute;
-  top: 22.5vw;
-  font-family: "Advent Pro";
-}
-
-#gpx{
-  position: absolute;
-  top: 23vw;
-
-  font-family: "Advent Pro";
+  z-index: 0;
 }
 
 #aboutTabs{
+  position: absolute;
+  left: 27%;
   height: auto;
   max-height: 20vw;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
   font-family: "audiowide";
-  
 }
 
 #astroTab, #favesTab, #skillsTab, #interestsTab, #bioTab{
@@ -57,12 +40,40 @@
   align-items: center;
 }
 
+#keyblade{
+  position: absolute;
+  top: 11vw;
+  left: 21%;
+  font-family: "Advent Pro";
+}
+
+#empoleon{
+  position: absolute;
+  top: 11vw;
+  left: 21%;
+  font-family: "Advent Pro";
+}
+
+#gpx{
+  position: absolute;
+  top: 16.5vw;
+  left: 21%;
+  font-family: "Advent Pro";
+}
+
+#aboutDisplay{
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  top: 35%;
+  display: flex;
+}
 
 #bio, #interests, #skills, #favorites, #astrology{
   position: absolute;
-  left: 50%;
+  left: 55%;
   width: 100%;
-  max-width: 40vw;
+  max-width: 35vw;
   height: auto;
   max-height: 24vw;
   padding: .75vw;
