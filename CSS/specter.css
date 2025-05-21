@@ -1,11 +1,4 @@
-#specterV2{
-  max-width: 14vw;
-  height: auto;
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%);
-}
+
 
 #info{
   position: absolute;
@@ -21,14 +14,7 @@
   margin-top: 20px;
 }
 
-#thoughtbox{
-  max-width: 26vw;
-  height: auto;
-  position: absolute;
-  top: 20%;
-  left: 67%;
-  transform: translate(-50%);
-}
+
 
 #specterText{
   max-width: 21vw;
