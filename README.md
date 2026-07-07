@@ -30,6 +30,6 @@ on every push to `main`. To turn it on (one-time setup):
 2. Under **Build and deployment → Source**, choose **GitHub Actions**.
 3. Push to `main` (or run the workflow manually from the **Actions** tab).
 
-Once deployed, the app is available at `https://<owner>.github.io/extra/`.
+Once deployed, the app is available at `https://<owner>.github.io/twine-app/`.
 Open that URL on your phone to use Twine there — add it to your home
 screen for an app-like feel.
