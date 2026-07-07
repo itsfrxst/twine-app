@@ -4,7 +4,7 @@
 // into one checklist, calendar, and timeline.
 // ─────────────────────────────────────────────────────────────
 import {
-  useState, useEffect, useRef, useCallback, createContext, useContext,
+  useState, useEffect, useRef, useCallback, useMemo, createContext, useContext,
 } from "react";
 import {
   Plus, X, Check, GripVertical, Trash2,
@@ -12,7 +12,10 @@ import {
   CornerDownRight, AlertCircle, Repeat, Pencil, Undo2, Redo2, List,
   Settings, Sun, Moon, RotateCcw, Coins, Tag, SlidersHorizontal, Activity,
   History, Swords, Sparkles, Star, Trophy, Download, Upload, Copy, Clipboard,
+  Cloud, CloudOff, LogOut,
 } from "lucide-react";
+import { supabase } from "./lib/supabaseClient";
+import { useCloudSync } from "./useCloudSync";
 
 // ─────────────────────────────────────────────────────────────
 // MODULE: storage — async persistence adapter with three tiers:
@@ -1103,6 +1106,26 @@ function ScoreBadge({ score }) {
       <Trophy size={13} />
       {score > 0 ? `+${score}` : score}
     </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODULE: SyncBadge — cloud sync status, shown only when signed in.
+// ─────────────────────────────────────────────────────────────
+function SyncBadge({ status, onSignOut }) {
+  const label = { syncing: "Syncing…", synced: "Synced", error: "Sync error" }[status] || "Sync";
+  const Icon = status === "error" ? CloudOff : Cloud;
+  return (
+    <button
+      onClick={onSignOut}
+      title={`${label} — click to sign out`}
+      className={`card bd inline-flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition hover-strong ${
+        status === "error" ? "danger" : "txt-muted"
+      }`}
+    >
+      <Icon size={13} className={status === "syncing" ? "animate-pulse" : ""} />
+      <LogOut size={11} className="opacity-50" />
+    </button>
   );
 }
 
@@ -2793,7 +2816,8 @@ function ProgressBar({ done, total }) {
 // ─────────────────────────────────────────────────────────────
 // SHELL: composes modules; owns theme, view, history toast, keys.
 // ─────────────────────────────────────────────────────────────
-export default function App() {
+export default function App({ session } = {}) {
+  const userId = session?.user?.id || null;
   const t = useTasks();
   const theme = useTheme();
   const cats = useCategories();
@@ -2869,33 +2893,49 @@ export default function App() {
 
   // ── backup: assemble everything for export. The panel decides how
   // to deliver it (file download, clipboard, or manual copy) since
-  // sandboxed previews block programmatic downloads.
-  const buildBackup = () => ({
-    app: "twine",
-    version: 1,
-    exportedAt: nowISO(),
-    state: { tasks: t.tasks, events: t.events, score: t.score },
-    categories: cats.categories,
-    theme: {
-      dark: theme.dark,
-      accentIndex: theme.accentIndex,
-      palette: theme.palette,
-    },
-  });
+  // sandboxed previews block programmatic downloads. Also the shape
+  // synced to the cloud, one row per user (see useCloudSync).
+  const buildBackup = useCallback(
+    () => ({
+      app: "twine",
+      version: 1,
+      exportedAt: nowISO(),
+      state: { tasks: t.tasks, events: t.events, score: t.score },
+      categories: cats.categories,
+      theme: {
+        dark: theme.dark,
+        accentIndex: theme.accentIndex,
+        palette: theme.palette,
+      },
+    }),
+    [t.tasks, t.events, t.score, cats.categories, theme.dark, theme.accentIndex, theme.palette]
+  );
 
   // accepts a parsed backup object; returns true if applied
-  const applyBackup = (backup) => {
-    const state = normalizeState(backup?.state ?? backup);
-    if (!state) return false;
-    t.resetTo(state);
-    if (Array.isArray(backup?.categories)) {
-      const clean = backup.categories.filter((c) => c && c.id && c.label);
-      if (clean.length) cats.setAll(clean);
-    }
-    const th = normalizeTheme(backup?.theme);
-    if (th) theme.setAll(th);
-    return true;
-  };
+  const applyBackup = useCallback(
+    (backup) => {
+      const state = normalizeState(backup?.state ?? backup);
+      if (!state) return false;
+      t.resetTo(state);
+      if (Array.isArray(backup?.categories)) {
+        const clean = backup.categories.filter((c) => c && c.id && c.label);
+        if (clean.length) cats.setAll(clean);
+      }
+      const th = normalizeTheme(backup?.theme);
+      if (th) theme.setAll(th);
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // cloud sync is a no-op (status "idle") unless VITE_SUPABASE_* env vars
+  // are set and the user is signed in — see src/lib/supabaseClient.js
+  const cloudBackup = useMemo(() => buildBackup(), [buildBackup]);
+  const syncStatus = useCloudSync(userId, cloudBackup, {
+    applyBackup,
+    ready: t.ready,
+  });
 
   return (
     <CategoriesContext.Provider value={cats.categories}>
@@ -2942,6 +2982,9 @@ export default function App() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {userId && (
+                <SyncBadge status={syncStatus} onSignOut={() => supabase.auth.signOut()} />
+              )}
               <ScoreBadge score={t.score} />
               <HistoryControls
                 canUndo={t.canUndo}
