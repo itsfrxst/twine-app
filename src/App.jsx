@@ -12,7 +12,7 @@ import {
   CornerDownRight, AlertCircle, Repeat, Pencil, Undo2, Redo2, List,
   Settings, Sun, Moon, RotateCcw, Coins, Tag, SlidersHorizontal, Activity,
   History, Swords, Sparkles, Star, Trophy, Download, Upload, Copy, Clipboard,
-  Cloud, CloudOff, LogOut,
+  Cloud, CloudOff, LogOut, ListFilter, ArrowDownAZ,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import { useCloudSync } from "./useCloudSync";
@@ -1652,7 +1652,7 @@ function SubtaskList({ parentId, subtasks, onToggleSub }) {
 // ─────────────────────────────────────────────────────────────
 // MODULE: TaskRow — display + quick interactions.
 // ─────────────────────────────────────────────────────────────
-function TaskRow({ task, index, ops, drag, onEdit }) {
+function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
   const [expanded, setExpanded] = useState(task.subtasks.length > 0);
 
   const subDone = task.subtasks.filter((s) => s.done).length;
@@ -1671,15 +1671,20 @@ function TaskRow({ task, index, ops, drag, onEdit }) {
       }`}
     >
       <div
-        draggable
-        onDragStart={() => drag.start(index)}
-        onDragEnter={() => drag.enter(index)}
-        onDragEnd={drag.end}
+        draggable={dragEnabled}
+        onDragStart={() => dragEnabled && drag.start(index)}
+        onDragEnter={() => dragEnabled && drag.enter(index)}
+        onDragEnd={() => dragEnabled && drag.end()}
         className="group flex items-center gap-2.5 px-3 py-3"
       >
         <button
-          className="txt-faint hover-txt cursor-grab opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+          className={`txt-faint hover-txt transition ${
+            dragEnabled
+              ? "cursor-grab opacity-0 group-hover:opacity-100 active:cursor-grabbing"
+              : "pointer-events-none opacity-0"
+          }`}
           aria-label="Drag to reorder"
+          title={dragEnabled ? undefined : "Switch to manual sort to reorder"}
         >
           <GripVertical size={16} />
         </button>
@@ -1755,6 +1760,75 @@ function TaskRow({ task, index, ops, drag, onEdit }) {
         </div>
       )}
     </li>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODULE: FilterSortBar — List-view-only category filter (multi-
+// select, toggle chips) + alphabetical sort. Both are display-only
+// transforms: the underlying task order (used for drag reorder) is
+// never touched. Manual drag reorder only makes sense against the
+// true stored order, so it's disabled by the caller whenever a
+// filter or non-manual sort is active — see `dragEnabled` on TaskRow.
+// ─────────────────────────────────────────────────────────────
+function FilterSortBar({ activeCategories, onToggleCategory, onClear, sortMode, onSortMode }) {
+  const categories = useCategoryList();
+  if (categories.length === 0) return null;
+
+  return (
+    <div className="space-y-2 border-b bd pb-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <ListFilter size={13} className="txt-faint shrink-0" />
+        {categories.map((c) => {
+          const active = activeCategories.includes(c.id);
+          return (
+            <button
+              key={c.id}
+              onClick={() => onToggleCategory(c.id)}
+              className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium transition"
+              style={
+                active
+                  ? { background: c.color, color: "#fff", borderColor: c.color }
+                  : undefined
+              }
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: active ? "#fff" : c.color }}
+              />
+              <span className={active ? "" : "txt-muted"}>{c.label}</span>
+            </button>
+          );
+        })}
+        {activeCategories.length > 0 && (
+          <button
+            onClick={onClear}
+            className="txt-soft hover-danger flex items-center gap-1 text-[11px] font-medium transition"
+          >
+            <X size={11} /> Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5">
+        <ArrowDownAZ size={13} className="txt-faint shrink-0" />
+        <div className="card bd flex rounded-lg border p-0.5">
+          {[
+            { id: "manual", label: "Manual order" },
+            { id: "alpha", label: "A–Z" },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => onSortMode(id)}
+              className={`rounded-md px-2 py-1 text-[11px] font-semibold transition ${
+                sortMode === id ? "accent-solid" : "txt-muted hover-strong"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2828,6 +2902,8 @@ export default function App({ session } = {}) {
   const [toastOpen, setToastOpen] = useState(false);
   const [view, setView] = useState("list");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState([]);
+  const [sortMode, setSortMode] = useState("manual");
 
   useEffect(() => {
     try {
@@ -2875,6 +2951,20 @@ export default function App({ session } = {}) {
   const allUnits = t.tasks.flatMap((x) => [x, ...x.subtasks]);
   const doneCount = allUnits.filter((u) => u.done).length;
   const parentDone = t.tasks.filter((x) => x.done).length;
+
+  // filter/sort are display-only transforms of t.tasks — the stored
+  // order (and progress totals above) always reflect the full list
+  const toggleCategoryFilter = (id) =>
+    setCategoryFilter((cs) => (cs.includes(id) ? cs.filter((c) => c !== id) : [...cs, id]));
+  const filteredTasks =
+    categoryFilter.length === 0
+      ? t.tasks
+      : t.tasks.filter((tk) => categoryFilter.includes(tk.category));
+  const visibleTasks =
+    sortMode === "alpha"
+      ? [...filteredTasks].sort((a, b) => a.text.localeCompare(b.text))
+      : filteredTasks;
+  const dragEnabled = categoryFilter.length === 0 && sortMode === "manual";
 
   const toDraft = (task) => ({
     text: task.text,
@@ -3013,6 +3103,14 @@ export default function App({ session } = {}) {
             <>
               <ProgressBar done={doneCount} total={allUnits.length} />
 
+              <FilterSortBar
+                activeCategories={categoryFilter}
+                onToggleCategory={toggleCategoryFilter}
+                onClear={() => setCategoryFilter([])}
+                sortMode={sortMode}
+                onSortMode={setSortMode}
+              />
+
               {composing ? (
                 <TaskComposer
                   submitLabel="Add task"
@@ -3034,21 +3132,24 @@ export default function App({ session } = {}) {
               )}
 
               <ul className="space-y-2">
-                {t.tasks.map((task, i) => (
+                {visibleTasks.map((task, i) => (
                   <TaskRow
                     key={task.id}
                     task={task}
                     index={i}
                     ops={t}
                     drag={drag}
+                    dragEnabled={dragEnabled}
                     onEdit={(tk) => setEditing(tk)}
                   />
                 ))}
               </ul>
 
-              {t.tasks.length === 0 && !composing && (
+              {visibleTasks.length === 0 && !composing && (
                 <p className="txt-soft py-6 text-center text-sm">
-                  Nothing here yet. Create your first task above.
+                  {t.tasks.length === 0
+                    ? "Nothing here yet. Create your first task above."
+                    : "No tasks match this filter."}
                 </p>
               )}
 
