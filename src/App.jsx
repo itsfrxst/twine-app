@@ -103,6 +103,9 @@ const PALETTE_SIZE = DEFAULT_PALETTE.length; // hard cap on accent count
 const clamp = (i, max) => Math.max(0, Math.min(max, i || 0));
 
 const THEME_CSS = `
+html, body {
+  overscroll-behavior-y: none;
+}
 :root {
   --app-bg:#eef2f6; --surface:#f8fafc; --card:#ffffff; --card-hover:#f1f5f9;
   --border:#e2e8f0; --border-strong:#cbd5e1;
@@ -538,6 +541,26 @@ const kairosPoints = (task, now) => {
   if (dl && now <= dl) pts += SCORING.onTime;
   return pts;
 };
+
+// ── List-view sort helpers ──
+// A task's potential point value, for sorting (not the same as
+// kairosPoints: no "on time" bonus, since that's only knowable once
+// a task is actually completed). Kronos tasks carry the penalty
+// they're at risk of as a negative value.
+const taskPointValue = (task) => {
+  if (task.side === "kairos") return SCORING.kairosBase + (task.marks || 0) * SCORING.perMark;
+  if (task.side === "kronos") return -SCORING.kronosPenalty;
+  return 0;
+};
+// the template-driven numeric field on a task — currency amount or
+// measurement value, whichever the task's category template uses
+const taskValueNumber = (task) => {
+  const raw = task.amount !== "" && task.amount != null ? task.amount : task.measureValue;
+  const n = parseFloat(raw);
+  return isNaN(n) ? null : n;
+};
+const taskDeadlineMs = (task) =>
+  task.date ? new Date(task.date + "T" + (task.time || "23:59")).getTime() : null;
 
 // an event captures a snapshot at the moment it happened.
 // type: "complete" (default, incl. legacy events) | "penalty"
@@ -1666,25 +1689,32 @@ function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
 
   return (
     <li
+      data-task-index={index}
       className={`card rounded-xl border transition-all ${
         drag.overIndex === index ? "accent-bd accent-soft" : "bd hover-bd-strong"
       }`}
     >
-      <div
-        draggable={dragEnabled}
-        onDragStart={() => dragEnabled && drag.start(index)}
-        onDragEnter={() => dragEnabled && drag.enter(index)}
-        onDragEnd={() => dragEnabled && drag.end()}
-        className="group flex items-center gap-2.5 px-3 py-3"
-      >
+      <div className="group flex items-center gap-2.5 px-3 py-3">
         <button
-          className={`txt-faint hover-txt transition ${
+          onPointerDown={(e) => {
+            if (!dragEnabled) return;
+            e.preventDefault();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.start(index);
+          }}
+          onPointerMove={(e) => {
+            if (!dragEnabled) return;
+            drag.move(e.clientX, e.clientY);
+          }}
+          onPointerUp={() => dragEnabled && drag.end()}
+          onPointerCancel={() => dragEnabled && drag.end()}
+          className={`txt-faint hover-txt touch-none select-none transition ${
             dragEnabled
-              ? "cursor-grab opacity-0 group-hover:opacity-100 active:cursor-grabbing"
+              ? "cursor-grab opacity-40 group-hover:opacity-100 active:cursor-grabbing"
               : "pointer-events-none opacity-0"
           }`}
           aria-label="Drag to reorder"
-          title={dragEnabled ? undefined : "Switch to manual sort to reorder"}
+          title={dragEnabled ? undefined : "Switch to manual order to reorder"}
         >
           <GripVertical size={16} />
         </button>
@@ -1764,70 +1794,104 @@ function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// MODULE: FilterSortBar — List-view-only category filter (multi-
-// select, toggle chips) + alphabetical sort. Both are display-only
-// transforms: the underlying task order (used for drag reorder) is
-// never touched. Manual drag reorder only makes sense against the
+// MODULE: FilterSortBar — List-view-only category + tag filters
+// (multi-select toggle chips) and a sort mode select. All display-
+// only transforms: the underlying task order (used for drag reorder)
+// is never touched. Manual drag reorder only makes sense against the
 // true stored order, so it's disabled by the caller whenever a
 // filter or non-manual sort is active — see `dragEnabled` on TaskRow.
 // ─────────────────────────────────────────────────────────────
-function FilterSortBar({ activeCategories, onToggleCategory, onClear, sortMode, onSortMode }) {
+const SORT_OPTIONS = [
+  { value: "manual", label: "Manual order" },
+  { value: "alpha", label: "Name (A–Z)" },
+  { value: "date", label: "Date (soonest first)" },
+  { value: "value", label: "Value (highest first)" },
+  { value: "points", label: "Points (highest first)" },
+];
+
+function FilterSortBar({
+  activeCategories, onToggleCategory,
+  activeTags, onToggleTag, availableTags,
+  onClearFilters, sortMode, onSortMode,
+}) {
   const categories = useCategoryList();
-  if (categories.length === 0) return null;
+  const hasFilters = activeCategories.length > 0 || activeTags.length > 0;
+  if (categories.length === 0 && availableTags.length === 0) return null;
 
   return (
     <div className="space-y-2 border-b bd pb-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <ListFilter size={13} className="txt-faint shrink-0" />
-        {categories.map((c) => {
-          const active = activeCategories.includes(c.id);
-          return (
-            <button
-              key={c.id}
-              onClick={() => onToggleCategory(c.id)}
-              className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium transition"
-              style={
-                active
-                  ? { background: c.color, color: "#fff", borderColor: c.color }
-                  : undefined
-              }
-            >
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: active ? "#fff" : c.color }}
-              />
-              <span className={active ? "" : "txt-muted"}>{c.label}</span>
-            </button>
-          );
-        })}
-        {activeCategories.length > 0 && (
-          <button
-            onClick={onClear}
-            className="txt-soft hover-danger flex items-center gap-1 text-[11px] font-medium transition"
-          >
-            <X size={11} /> Clear
-          </button>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <ArrowDownAZ size={13} className="txt-faint shrink-0" />
-        <div className="card bd flex rounded-lg border p-0.5">
-          {[
-            { id: "manual", label: "Manual order" },
-            { id: "alpha", label: "A–Z" },
-          ].map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => onSortMode(id)}
-              className={`rounded-md px-2 py-1 text-[11px] font-semibold transition ${
-                sortMode === id ? "accent-solid" : "txt-muted hover-strong"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ListFilter size={13} className="txt-faint shrink-0" />
+          {categories.map((c) => {
+            const active = activeCategories.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                onClick={() => onToggleCategory(c.id)}
+                className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium transition"
+                style={
+                  active
+                    ? { background: c.color, color: "#fff", borderColor: c.color }
+                    : undefined
+                }
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: active ? "#fff" : c.color }}
+                />
+                <span className={active ? "" : "txt-muted"}>{c.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      )}
+
+      {availableTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Tag size={13} className="txt-faint shrink-0" />
+          {availableTags.map((tag) => {
+            const active = activeTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => onToggleTag(tag)}
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
+                  active
+                    ? "accent-solid accent-bd"
+                    : "bd txt-muted hover-accent-bd"
+                }`}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {hasFilters && (
+        <button
+          onClick={onClearFilters}
+          className="txt-soft hover-danger flex items-center gap-1 text-[11px] font-medium transition"
+        >
+          <X size={11} /> Clear filters
+        </button>
+      )}
+
+      <label className="flex items-center gap-1.5">
+        <ArrowDownAZ size={13} className="txt-faint shrink-0" />
+        <select
+          value={sortMode}
+          onChange={(e) => onSortMode(e.target.value)}
+          className="bd txt focus-accent rounded-lg border bg-transparent px-2 py-1 text-[11px] font-medium outline-none"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
@@ -2903,6 +2967,7 @@ export default function App({ session } = {}) {
   const [view, setView] = useState("list");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState([]);
+  const [tagFilter, setTagFilter] = useState([]);
   const [sortMode, setSortMode] = useState("manual");
 
   useEffect(() => {
@@ -2936,12 +3001,24 @@ export default function App({ session } = {}) {
     return () => window.removeEventListener?.("keydown", onKey);
   }, [t]);
 
+  // Pointer Events, not HTML5 drag-and-drop: the native DnD API has no
+  // real touch support (iOS Safari never fires drag events for touch
+  // input), so "hold to reorder" silently did nothing on phones.
+  // Pointer Events unify mouse/touch/pen. Only the grip handle listens
+  // (touch-action: none there) so a drag never fights normal list
+  // scrolling — see TaskRow.
   const drag = {
     overIndex,
     start: (i) => (dragFrom.current = i),
-    enter: (i) => setOverIndex(i),
+    move: (clientX, clientY) => {
+      if (dragFrom.current === null) return;
+      const row = document.elementFromPoint(clientX, clientY)?.closest("[data-task-index]");
+      if (!row) return;
+      const idx = Number(row.dataset.taskIndex);
+      if (!Number.isNaN(idx) && idx !== overIndex) setOverIndex(idx);
+    },
     end: () => {
-      if (dragFrom.current !== null && overIndex !== null)
+      if (dragFrom.current !== null && overIndex !== null && overIndex !== dragFrom.current)
         t.reorder(dragFrom.current, overIndex);
       dragFrom.current = null;
       setOverIndex(null);
@@ -2956,15 +3033,55 @@ export default function App({ session } = {}) {
   // order (and progress totals above) always reflect the full list
   const toggleCategoryFilter = (id) =>
     setCategoryFilter((cs) => (cs.includes(id) ? cs.filter((c) => c !== id) : [...cs, id]));
-  const filteredTasks =
-    categoryFilter.length === 0
-      ? t.tasks
-      : t.tasks.filter((tk) => categoryFilter.includes(tk.category));
-  const visibleTasks =
-    sortMode === "alpha"
-      ? [...filteredTasks].sort((a, b) => a.text.localeCompare(b.text))
-      : filteredTasks;
-  const dragEnabled = categoryFilter.length === 0 && sortMode === "manual";
+  const toggleTagFilter = (tag) =>
+    setTagFilter((ts) => (ts.includes(tag) ? ts.filter((x) => x !== tag) : [...ts, tag]));
+  const clearFilters = () => {
+    setCategoryFilter([]);
+    setTagFilter([]);
+  };
+
+  const availableTags = useMemo(() => {
+    const set = new Set();
+    for (const tk of t.tasks) (tk.tags || []).forEach((tg) => tg && set.add(tg));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [t.tasks]);
+
+  const filteredTasks = t.tasks.filter((tk) => {
+    if (categoryFilter.length > 0 && !categoryFilter.includes(tk.category)) return false;
+    if (tagFilter.length > 0 && !(tk.tags || []).some((tg) => tagFilter.includes(tg)))
+      return false;
+    return true;
+  });
+
+  const visibleTasks = (() => {
+    switch (sortMode) {
+      case "alpha":
+        return [...filteredTasks].sort((a, b) => a.text.localeCompare(b.text));
+      case "date":
+        return [...filteredTasks].sort((a, b) => {
+          const da = taskDeadlineMs(a), db = taskDeadlineMs(b);
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return da - db;
+        });
+      case "value":
+        return [...filteredTasks].sort((a, b) => {
+          const va = taskValueNumber(a), vb = taskValueNumber(b);
+          if (va == null && vb == null) return 0;
+          if (va == null) return 1;
+          if (vb == null) return -1;
+          return vb - va;
+        });
+      case "points":
+        return [...filteredTasks].sort((a, b) => taskPointValue(b) - taskPointValue(a));
+      default:
+        return filteredTasks;
+    }
+  })();
+
+  const dragEnabled =
+    categoryFilter.length === 0 && tagFilter.length === 0 && sortMode === "manual";
 
   const toDraft = (task) => ({
     text: task.text,
@@ -3106,7 +3223,10 @@ export default function App({ session } = {}) {
               <FilterSortBar
                 activeCategories={categoryFilter}
                 onToggleCategory={toggleCategoryFilter}
-                onClear={() => setCategoryFilter([])}
+                activeTags={tagFilter}
+                onToggleTag={toggleTagFilter}
+                availableTags={availableTags}
+                onClearFilters={clearFilters}
                 sortMode={sortMode}
                 onSortMode={setSortMode}
               />
