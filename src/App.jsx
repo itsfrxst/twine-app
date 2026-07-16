@@ -777,6 +777,18 @@ const normalizeEvent = (e) => ({ type: "complete", points: 0, side: "", vehicleI
 
 const emptyState = () => ({ tasks: [], events: [], score: 0 });
 
+// merge by id: entries from `incoming` (a backup file) override
+// matches by id, but anything only present in `current` — e.g. a
+// category shipped after that backup was taken — is kept rather than
+// dropped. Used for manual backup import so restoring an old backup
+// can never downgrade categories/vehicles added since; cloud sync
+// uses a plain replace instead, since multi-device mirroring should
+// be exact, deletions included.
+const mergeById = (current, incoming) => {
+  const incomingIds = new Set(incoming.map((x) => x.id));
+  return [...incoming, ...current.filter((x) => !incomingIds.has(x.id))];
+};
+
 const normalizeState = (raw) => {
   if (Array.isArray(raw))
     return { tasks: raw.map(normalizeTask), events: [], score: 0 };
@@ -3358,7 +3370,9 @@ function SettingsPanel({
             <p className="txt-muted text-[11px]">{pending.summary}</p>
             <p className="warn flex items-center gap-1 text-[11px]">
               <AlertCircle size={11} /> Importing replaces your current tasks,
-              timeline, categories, and theme.
+              timeline, and theme. Categories and vehicles are merged in,
+              not replaced — anything added since this backup was taken
+              is kept.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -3453,6 +3467,17 @@ export default function App({ session } = {}) {
   const theme = useTheme();
   const cats = useCategories();
   const vehicles = useVehicles();
+  // importBackup (below) reads these via ref rather than a dependency
+  // array, so its identity stays stable (avoiding extra useCloudSync
+  // effect churn) while still always merging against current state
+  const catsRef = useRef(cats.categories);
+  useEffect(() => {
+    catsRef.current = cats.categories;
+  }, [cats.categories]);
+  const vehiclesRef = useRef(vehicles.vehicles);
+  useEffect(() => {
+    vehiclesRef.current = vehicles.vehicles;
+  }, [vehicles.vehicles]);
   const dragFrom = useRef(null);
   const [overIndex, setOverIndex] = useState(null);
   const [composing, setComposing] = useState(false);
@@ -3617,7 +3642,9 @@ export default function App({ session } = {}) {
     ]
   );
 
-  // accepts a parsed backup object; returns true if applied
+  // accepts a parsed backup object; returns true if applied. Used by
+  // cloud sync (pull + realtime): a full mirror of the remote state,
+  // deletions included, since multi-device sync should be exact.
   const applyBackup = useCallback(
     (backup) => {
       const state = normalizeState(backup?.state ?? backup);
@@ -3629,6 +3656,32 @@ export default function App({ session } = {}) {
       }
       if (Array.isArray(backup?.vehicles)) {
         vehicles.setAll(backup.vehicles.filter((v) => v && v.id));
+      }
+      const th = normalizeTheme(backup?.theme);
+      if (th) theme.setAll(th);
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // used by the manual Settings "Import backup" button instead of
+  // applyBackup: tasks/events/score/theme are restored in full (that's
+  // the point of a restore), but categories/vehicles are merged rather
+  // than replaced, so importing an old backup can never downgrade
+  // categories (e.g. Auto/Projects) added to the app since it was taken.
+  const importBackup = useCallback(
+    (backup) => {
+      const state = normalizeState(backup?.state ?? backup);
+      if (!state) return false;
+      t.resetTo(state);
+      if (Array.isArray(backup?.categories)) {
+        const clean = backup.categories.filter((c) => c && c.id && c.label);
+        if (clean.length) cats.setAll(mergeById(catsRef.current, clean));
+      }
+      if (Array.isArray(backup?.vehicles)) {
+        const clean = backup.vehicles.filter((v) => v && v.id);
+        if (clean.length) vehicles.setAll(mergeById(vehiclesRef.current, clean));
       }
       const th = normalizeTheme(backup?.theme);
       if (th) theme.setAll(th);
@@ -3829,7 +3882,7 @@ export default function App({ session } = {}) {
             vehicles={vehicles}
             onClose={() => setSettingsOpen(false)}
             onBuildBackup={buildBackup}
-            onApplyBackup={applyBackup}
+            onApplyBackup={importBackup}
             onResetData={async () => {
               await storage.remove(STORAGE_KEY);
               await storage.remove(THEME_KEY);
