@@ -12,7 +12,7 @@ import {
   CornerDownRight, AlertCircle, Repeat, Pencil, Undo2, Redo2, List,
   Settings, Sun, Moon, RotateCcw, Coins, Tag, SlidersHorizontal, Activity,
   History, Swords, Sparkles, Star, Trophy, Download, Upload, Copy, Clipboard,
-  Cloud, CloudOff, LogOut, ListFilter, ArrowDownAZ,
+  Cloud, CloudOff, LogOut, ListFilter, ArrowDownAZ, Car,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import { useCloudSync } from "./useCloudSync";
@@ -84,6 +84,7 @@ const storage = {
 const STORAGE_KEY = "checklist.tasks.v1";
 const THEME_KEY = "checklist.theme.v2"; // v2: palette is now editable
 const CATEGORIES_KEY = "checklist.categories.v1";
+const VEHICLES_KEY = "checklist.vehicles.v1";
 
 // ─────────────────────────────────────────────────────────────
 // MODULE: theme tokens — the single source of truth for color.
@@ -300,6 +301,33 @@ const DEFAULT_CATEGORIES = [
       tags: ["Income", "Expense", "Bill", "Subscription", "Investment"],
     },
   },
+  {
+    id: "auto",
+    label: "Auto",
+    color: "#f97316",
+    // vehicle: true swaps in a picker over the saved Vehicles list (see
+    // the vehicles module below) instead of retyping make/model each
+    // time. measure doubles as an odometer reading at time of service.
+    template: {
+      vehicle: true,
+      measure: true,
+      measureUnit: "mi",
+      tags: ["Maintenance", "Repair", "Registration", "Fuel", "Insurance"],
+    },
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    color: "#0ea5e9",
+    // No special template — Projects' distinguishing feature is that
+    // its tasks tend to lean on deeply nested subtask outlines, which
+    // every task can do (see the recursive subtask tree below).
+    template: {
+      currency: false,
+      currencyCode: "USD",
+      tags: ["Planning", "In Progress", "Blocked", "Review"],
+    },
+  },
 ];
 // suggested colors cycled through when adding a new category
 const CATEGORY_SWATCHES = [
@@ -379,6 +407,63 @@ function useCategories() {
     categories, add, update, remove, setCategoryTags, addCategoryTag,
     resetAll: () => setCategories([...DEFAULT_CATEGORIES]),
     setAll: (list) => setCategories(list), // backup restore
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODULE: vehicles — a reusable "garage" for the Auto category's
+// vehicle template field, so make/model/etc. get entered once and
+// picked thereafter instead of retyped per task. Persisted the same
+// way as categories; a context exposes the live list to the picker
+// and chip so call sites only need a vehicle id.
+// ─────────────────────────────────────────────────────────────
+const VehiclesContext = createContext([]);
+const useVehicleList = () => useContext(VehiclesContext);
+
+const vehicleLabel = (v) => {
+  if (!v) return "";
+  if (v.label) return v.label;
+  return [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
+};
+
+function useVehicles() {
+  const [vehicles, setVehicles] = useState([]);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const loaded = await storage.load(VEHICLES_KEY, null);
+      if (!alive) return;
+      if (Array.isArray(loaded)) setVehicles(loaded);
+      hydrated.current = true;
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    storage.save(VEHICLES_KEY, vehicles);
+  }, [vehicles]);
+
+  // returns the created vehicle (with its id) synchronously, so a
+  // caller (the composer's picker) can select it immediately without
+  // waiting on the state update to commit.
+  const add = (draft) => {
+    const v = { id: crypto.randomUUID(), make: "", model: "", year: "", label: "", plate: "", ...draft };
+    setVehicles((vs) => [...vs, v]);
+    return v;
+  };
+  const update = (id, patch) =>
+    setVehicles((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  const remove = (id) => setVehicles((vs) => vs.filter((v) => v.id !== id));
+
+  return {
+    vehicles, add, update, remove,
+    resetAll: () => setVehicles([]),
+    setAll: (list) => setVehicles(list), // backup restore
   };
 }
 
@@ -573,6 +658,7 @@ const makeEvent = (task, ts, extra = {}) => ({
   side: task.side || "",
   text: task.text,
   category: task.category || "",
+  vehicleId: task.vehicleId || "",
   amount: task.amount || "",
   measureValue: task.measureValue || "",
   measureUnit: task.measureUnit || "",
@@ -645,6 +731,36 @@ const sweepKronos = (state, now = new Date()) => {
   return changed ? { ...state, tasks, events, score } : state;
 };
 
+// ── recursive subtask tree helpers ──
+// Subtasks nest arbitrarily deep (each node may itself carry a
+// `subtasks` array), rendered as a collapsible outline — see
+// SubtaskNode. ids are UUIDs and unique across the whole tree, so
+// every operation below just needs a target id, not a full path.
+const mapSubtaskTree = (nodes, id, fn) =>
+  nodes.map((n) =>
+    n.id === id ? fn(n) : { ...n, subtasks: mapSubtaskTree(n.subtasks, id, fn) }
+  );
+const removeFromSubtaskTree = (nodes, id) =>
+  nodes
+    .filter((n) => n.id !== id)
+    .map((n) => ({ ...n, subtasks: removeFromSubtaskTree(n.subtasks, id) }));
+// parentId === null adds at the task's top level
+const addChildToSubtaskTree = (nodes, parentId, child) => {
+  if (parentId === null) return [...nodes, child];
+  return nodes.map((n) =>
+    n.id === parentId
+      ? { ...n, subtasks: [...n.subtasks, child] }
+      : { ...n, subtasks: addChildToSubtaskTree(n.subtasks, parentId, child) }
+  );
+};
+const flattenSubtasks = (nodes) => nodes.flatMap((n) => [n, ...flattenSubtasks(n.subtasks)]);
+const normalizeSubtask = (s) => ({
+  id: s.id || crypto.randomUUID(),
+  text: s.text || "",
+  done: !!s.done,
+  subtasks: Array.isArray(s.subtasks) ? s.subtasks.map(normalizeSubtask) : [],
+});
+
 // The persisted state is { tasks, events, score }. Older shapes (bare
 // array; {tasks,events} without score; tasks without side/marks) are
 // migrated transparently so updates never reset personalization.
@@ -653,9 +769,11 @@ const normalizeTask = (t) => ({
   side: "",
   marks: 0,
   penalizedThrough: null,
+  vehicleId: "",
   ...t,
+  subtasks: Array.isArray(t.subtasks) ? t.subtasks.map(normalizeSubtask) : [],
 });
-const normalizeEvent = (e) => ({ type: "complete", points: 0, side: "", ...e });
+const normalizeEvent = (e) => ({ type: "complete", points: 0, side: "", vehicleId: "", ...e });
 
 const emptyState = () => ({ tasks: [], events: [], score: 0 });
 
@@ -755,6 +873,7 @@ function buildTask(draft) {
     time: draft.time || "",
     repeat: draft.repeat || "none",
     category: draft.category || "",
+    vehicleId: draft.vehicleId || "",
     amount: (draft.amount ?? "").toString().trim(),
     measureValue: (draft.measureValue ?? "").toString().trim(),
     measureUnit: (draft.measureUnit ?? "").toString().trim(),
@@ -764,9 +883,11 @@ function buildTask(draft) {
     penalizedThrough: null,
     createdAt: nowISO(),   // timestamp: added to the list
     completedAt: null,     // timestamp: when completed (null until done)
+    // depth-1 at creation time; nesting grows later via row-level
+    // "add sub-item" actions (see addSubChild)
     subtasks: (draft.subtasks || [])
       .filter((s) => s.text.trim())
-      .map((s) => ({ id: crypto.randomUUID(), text: s.text.trim(), done: false })),
+      .map((s) => ({ id: crypto.randomUUID(), text: s.text.trim(), done: false, subtasks: [] })),
   };
 }
 
@@ -861,6 +982,7 @@ function useTasks() {
                 time: draft.time || "",
                 repeat: draft.repeat || "none",
                 category: draft.category || "",
+                vehicleId: draft.vehicleId || "",
                 amount: (draft.amount ?? "").toString().trim(),
                 measureValue: (draft.measureValue ?? "").toString().trim(),
                 measureUnit: (draft.measureUnit ?? "").toString().trim(),
@@ -874,12 +996,16 @@ function useTasks() {
                   x.side !== (draft.side || "")
                     ? null
                     : x.penalizedThrough || null,
+                // preserve each item's nested subtasks — the composer
+                // only edits top-level text/done, never the outline
+                // built up via row-level "add sub-item" actions
                 subtasks: (draft.subtasks || [])
                   .filter((s) => s.text.trim())
                   .map((s) => ({
                     id: s.id || crypto.randomUUID(),
                     text: s.text.trim(),
                     done: s.done || false,
+                    subtasks: Array.isArray(s.subtasks) ? s.subtasks : [],
                   })),
               }
             : x
@@ -942,26 +1068,51 @@ function useTasks() {
   const clearDone = () =>
     commitTasks((t) => t.filter((x) => !x.done), "Completed cleared");
 
-  const toggleSub = (parentId, subId) =>
+  // subId may be nested at any depth — mapSubtaskTree searches the
+  // whole outline under this task, so callers never need a full path
+  const toggleSub = (taskId, subId) =>
     commitTasks(
       (t) =>
         t.map((x) =>
-          x.id === parentId
-            ? {
-                ...x,
-                subtasks: x.subtasks.map((s) =>
-                  s.id === subId ? { ...s, done: !s.done } : s
-                ),
-              }
+          x.id === taskId
+            ? { ...x, subtasks: mapSubtaskTree(x.subtasks, subId, (n) => ({ ...n, done: !n.done })) }
             : x
         ),
       "Subtask toggled"
     );
 
+  // parentSubId === null adds at the task's top level; otherwise
+  // nests under that specific (possibly deeply nested) subtask
+  const addSubChild = (taskId, parentSubId, text) => {
+    const v = (text || "").trim();
+    if (!v) return;
+    const child = { id: crypto.randomUUID(), text: v, done: false, subtasks: [] };
+    commitTasks(
+      (t) =>
+        t.map((x) =>
+          x.id === taskId
+            ? { ...x, subtasks: addChildToSubtaskTree(x.subtasks, parentSubId, child) }
+            : x
+        ),
+      "Sub-item added"
+    );
+  };
+
+  const removeSub = (taskId, subId) =>
+    commitTasks(
+      (t) =>
+        t.map((x) =>
+          x.id === taskId
+            ? { ...x, subtasks: removeFromSubtaskTree(x.subtasks, subId) }
+            : x
+        ),
+      "Sub-item removed"
+    );
+
   return {
     tasks, events, ready, resetTo,
     score: h.present.score,
-    add, replace, toggle, remove, reorder, clearDone, toggleSub,
+    add, replace, toggle, remove, reorder, clearDone, toggleSub, addSubChild, removeSub,
     undo: h.undo, redo: h.redo,
     canUndo: h.canUndo, canRedo: h.canRedo,
     undoLabel: h.undoLabel, redoLabel: h.redoLabel,
@@ -1005,6 +1156,22 @@ function CategoryChip({ id }) {
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.color }} />
       {c.label}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODULE: VehicleChip — shown on rows when a task has a vehicle set.
+// ─────────────────────────────────────────────────────────────
+function VehicleChip({ id }) {
+  const vehicles = useVehicleList();
+  const v = vehicles.find((x) => x.id === id);
+  if (!v) return null;
+  return (
+    <span className="surface txt inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold">
+      <Car size={10} />
+      {vehicleLabel(v)}
+      {v.plate ? ` · ${v.plate}` : ""}
     </span>
   );
 }
@@ -1170,13 +1337,122 @@ function TagChips({ tags }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MODULE: VehicleField — picker over the saved Vehicles "garage"
+// (Auto category template), with an inline "add new vehicle" form so
+// make/model/etc. get entered once and reused thereafter.
+// ─────────────────────────────────────────────────────────────
+function VehicleField({ vehicleId, onVehicleId, onAddVehicle }) {
+  const vehicles = useVehicleList();
+  const [adding, setAdding] = useState(false);
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [label, setLabel] = useState("");
+  const [plate, setPlate] = useState("");
+
+  const saveNew = () => {
+    if (!make.trim() && !model.trim() && !label.trim()) return;
+    const v = onAddVehicle({
+      make: make.trim(), model: model.trim(), year: year.trim(),
+      label: label.trim(), plate: plate.trim(),
+    });
+    onVehicleId(v.id);
+    setAdding(false);
+    setMake(""); setModel(""); setYear(""); setLabel(""); setPlate("");
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="bd focus-accent flex items-center gap-2 rounded-lg border px-2 py-1.5">
+        <Car size={13} className="txt-soft shrink-0" />
+        <select
+          value={adding ? "__new__" : vehicleId || ""}
+          onChange={(e) => {
+            if (e.target.value === "__new__") {
+              setAdding(true);
+              return;
+            }
+            setAdding(false);
+            onVehicleId(e.target.value);
+          }}
+          className="txt w-full bg-transparent text-sm outline-none"
+        >
+          <option value="">No vehicle</option>
+          {vehicles.map((v) => (
+            <option key={v.id} value={v.id}>
+              {vehicleLabel(v)}
+            </option>
+          ))}
+          <option value="__new__">+ Add new vehicle…</option>
+        </select>
+      </label>
+
+      {adding && (
+        <div className="bd surface space-y-2 rounded-lg border p-2">
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={make}
+              onChange={(e) => setMake(e.target.value)}
+              placeholder="Make"
+              className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+            />
+            <input
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Model"
+              className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+            />
+            <input
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder="Year"
+              className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+            />
+            <input
+              value={plate}
+              onChange={(e) => setPlate(e.target.value)}
+              placeholder="Plate"
+              className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+            />
+          </div>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Nickname (optional)"
+            className="ph bd txt focus-accent w-full rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="txt-muted hover-strong rounded-lg px-2 py-1 text-[11px] font-medium transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveNew}
+              className="accent-solid rounded-lg px-2 py-1 text-[11px] font-semibold"
+            >
+              Save vehicle
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MODULE: TemplateFields — extra composer inputs contributed by a
-// category's template (currency amount + customizable tags). Only
-// rendered when the selected category has a template.
+// category's template (currency amount, measurement, vehicle picker,
+// customizable tags). Only rendered when the selected category has a
+// template.
 // ─────────────────────────────────────────────────────────────
 function TemplateFields({
-  template, amount, measureValue, measureUnit, tags,
+  template, amount, measureValue, measureUnit, tags, vehicleId,
   onAmount, onMeasureValue, onMeasureUnit, onToggleTag, onAddTag, onRemoveTag,
+  onVehicleId, onAddVehicle,
 }) {
   const [tagText, setTagText] = useState("");
   const presets = (template.tags || []).filter((t) => t && t.trim());
@@ -1188,6 +1464,10 @@ function TemplateFields({
       <span className="txt-muted text-[11px] font-semibold uppercase tracking-wide">
         Details
       </span>
+
+      {template.vehicle && (
+        <VehicleField vehicleId={vehicleId} onVehicleId={onVehicleId} onAddVehicle={onAddVehicle} />
+      )}
 
       {template.currency && (
         <label className="bd focus-accent flex items-center gap-2 rounded-lg border px-2 py-1.5">
@@ -1295,13 +1575,13 @@ function TemplateFields({
 // ─────────────────────────────────────────────────────────────
 function emptyDraft() {
   return {
-    text: "", date: "", time: "", repeat: "none", category: "",
+    text: "", date: "", time: "", repeat: "none", category: "", vehicleId: "",
     amount: "", measureValue: "", measureUnit: "", tags: [],
     side: "", marks: 0, subtasks: [],
   };
 }
 
-function TaskComposer({ initial, onSubmit, onCancel, submitLabel, onAddCategoryTag, timestamps }) {
+function TaskComposer({ initial, onSubmit, onCancel, submitLabel, onAddCategoryTag, onAddVehicle, timestamps }) {
   const [draft, setDraft] = useState(initial || emptyDraft());
   const [subText, setSubText] = useState("");
 
@@ -1311,7 +1591,7 @@ function TaskComposer({ initial, onSubmit, onCancel, submitLabel, onAddCategoryT
     const v = subText.trim();
     if (!v) return;
     patch({
-      subtasks: [...draft.subtasks, { id: crypto.randomUUID(), text: v, done: false }],
+      subtasks: [...draft.subtasks, { id: crypto.randomUUID(), text: v, done: false, subtasks: [] }],
     });
     setSubText("");
   };
@@ -1352,6 +1632,7 @@ function TaskComposer({ initial, onSubmit, onCancel, submitLabel, onAddCategoryT
     const tmpl = categories.find((c) => c.id === draft.category)?.template;
     const cleaned = {
       ...draft,
+      vehicleId: tmpl?.vehicle ? draft.vehicleId : "",
       amount: tmpl?.currency ? draft.amount : "",
       measureValue: tmpl?.measure ? draft.measureValue : "",
       measureUnit: tmpl?.measure ? draft.measureUnit : "",
@@ -1515,12 +1796,15 @@ function TaskComposer({ initial, onSubmit, onCancel, submitLabel, onAddCategoryT
           measureValue={draft.measureValue}
           measureUnit={draft.measureUnit}
           tags={draft.tags}
+          vehicleId={draft.vehicleId}
           onAmount={(v) => patch({ amount: v })}
           onMeasureValue={(v) => patch({ measureValue: v })}
           onMeasureUnit={(v) => patch({ measureUnit: v })}
           onToggleTag={toggleTag}
           onAddTag={addTag}
           onRemoveTag={removeTag}
+          onVehicleId={(v) => patch({ vehicleId: v })}
+          onAddVehicle={onAddVehicle}
         />
       )}
 
@@ -1648,26 +1932,150 @@ function DueBadge({ date, time, repeat }) {
 // ─────────────────────────────────────────────────────────────
 // MODULE: SubtaskList — read/check view on the row.
 // ─────────────────────────────────────────────────────────────
-function SubtaskList({ parentId, subtasks, onToggleSub }) {
-  if (subtasks.length === 0) return null;
+// ─────────────────────────────────────────────────────────────
+// MODULE: SubtaskNode / SubtaskList — recursive, collapsible subtask
+// outline (Reddit-comment-style: any node can carry its own children,
+// collapsed independently). Renaming existing text is still done via
+// the task's Edit composer; this view handles toggling done,
+// collapsing, adding a child under any node, and removing a node
+// (and its whole subtree) — the operations that make the outline feel
+// alive without reopening the composer each time.
+// ─────────────────────────────────────────────────────────────
+function SubtaskNode({ taskId, node, ops }) {
+  const [expanded, setExpanded] = useState(true);
+  const [addingChild, setAddingChild] = useState(false);
+  const [childText, setChildText] = useState("");
+  const hasChildren = node.subtasks.length > 0;
+
+  const submitChild = () => {
+    const v = childText.trim();
+    if (!v) return;
+    ops.addSubChild(taskId, node.id, v);
+    setChildText("");
+    setAddingChild(false);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="group flex items-center gap-1.5">
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          aria-label={expanded ? "Collapse" : "Expand"}
+          className={`txt-soft hover-strong shrink-0 transition ${
+            hasChildren ? "" : "pointer-events-none opacity-20"
+          }`}
+        >
+          <ChevronRight
+            size={12}
+            className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
+        </button>
+        <Checkbox size={4} done={node.done} onClick={() => ops.toggleSub(taskId, node.id)} />
+        <span
+          className={`flex-1 text-[13px] transition ${
+            node.done ? "txt-soft line-through" : "txt"
+          }`}
+        >
+          {node.text}
+        </span>
+        <button
+          onClick={() => setAddingChild((a) => !a)}
+          aria-label="Add sub-item"
+          className="txt-faint hover-accent shrink-0 opacity-0 transition group-hover:opacity-100"
+        >
+          <Plus size={13} />
+        </button>
+        <button
+          onClick={() => ops.removeSub(taskId, node.id)}
+          aria-label="Remove sub-item"
+          className="txt-faint hover-danger shrink-0 opacity-0 transition group-hover:opacity-100"
+        >
+          <X size={13} />
+        </button>
+      </div>
+
+      {addingChild && (
+        <div className="ml-5 flex items-center gap-2">
+          <CornerDownRight size={12} className="txt-faint shrink-0" />
+          <input
+            autoFocus
+            value={childText}
+            onChange={(e) => setChildText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitChild();
+              }
+              if (e.key === "Escape") {
+                setAddingChild(false);
+                setChildText("");
+              }
+            }}
+            onBlur={() => !childText.trim() && setAddingChild(false)}
+            placeholder="Add sub-item…"
+            className="ph txt-muted flex-1 bg-transparent text-[13px] outline-none"
+          />
+        </div>
+      )}
+
+      {expanded && hasChildren && (
+        <div className="bd ml-2 space-y-1.5 border-l-2 pl-3">
+          {node.subtasks.map((child) => (
+            <SubtaskNode key={child.id} taskId={taskId} node={child} ops={ops} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubtaskList({ taskId, subtasks, ops }) {
+  const [addingRoot, setAddingRoot] = useState(false);
+  const [rootText, setRootText] = useState("");
+
+  const submitRoot = () => {
+    const v = rootText.trim();
+    if (!v) return;
+    ops.addSubChild(taskId, null, v);
+    setRootText("");
+    setAddingRoot(false);
+  };
+
   return (
     <div className="bd ml-8 mt-2 space-y-1.5 border-l-2 pl-3">
-      {subtasks.map((s) => (
-        <div key={s.id} className="flex items-center gap-2">
-          <Checkbox
-            size={4}
-            done={s.done}
-            onClick={() => onToggleSub(parentId, s.id)}
-          />
-          <span
-            className={`text-[13px] transition ${
-              s.done ? "txt-soft line-through" : "txt"
-            }`}
-          >
-            {s.text}
-          </span>
-        </div>
+      {subtasks.map((node) => (
+        <SubtaskNode key={node.id} taskId={taskId} node={node} ops={ops} />
       ))}
+      {addingRoot ? (
+        <div className="flex items-center gap-2">
+          <Plus size={12} className="txt-faint shrink-0" />
+          <input
+            autoFocus
+            value={rootText}
+            onChange={(e) => setRootText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitRoot();
+              }
+              if (e.key === "Escape") {
+                setAddingRoot(false);
+                setRootText("");
+              }
+            }}
+            onBlur={() => !rootText.trim() && setAddingRoot(false)}
+            placeholder="Add sub-item…"
+            className="ph txt-muted flex-1 bg-transparent text-[13px] outline-none"
+          />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddingRoot(true)}
+          className="txt-soft hover-accent flex items-center gap-1.5 text-[11px] font-medium transition"
+        >
+          <Plus size={12} /> Add sub-item
+        </button>
+      )}
     </div>
   );
 }
@@ -1678,8 +2086,11 @@ function SubtaskList({ parentId, subtasks, onToggleSub }) {
 function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
   const [expanded, setExpanded] = useState(task.subtasks.length > 0);
 
-  const subDone = task.subtasks.filter((s) => s.done).length;
-  const subTotal = task.subtasks.length;
+  // flattened so the count (and the "expand to add one" affordance)
+  // reflects the whole nested outline, not just the top level
+  const flatSubs = flattenSubtasks(task.subtasks);
+  const subDone = flatSubs.filter((s) => s.done).length;
+  const subTotal = flatSubs.length;
   const hasAmount = task.amount != null && task.amount !== "";
   const hasTags = Array.isArray(task.tags) && task.tags.length > 0;
   const hasMeasure = task.measureValue != null && task.measureValue !== "";
@@ -1722,9 +2133,8 @@ function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
         <button
           onClick={() => setExpanded((e) => !e)}
           aria-label={expanded ? "Collapse" : "Expand"}
-          className={`txt-soft hover-strong transition ${
-            subTotal ? "" : "pointer-events-none opacity-20"
-          }`}
+          title={subTotal ? undefined : "Expand to add sub-items"}
+          className="txt-soft hover-strong transition"
         >
           <ChevronRight
             size={15}
@@ -1746,6 +2156,7 @@ function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
             <div className="flex flex-wrap items-center gap-1.5">
               <SideBadge side={task.side} marks={task.marks} />
               <CategoryChip id={task.category} />
+              <VehicleChip id={task.vehicleId} />
               <MoneyBadge amount={task.amount} categoryId={task.category} />
               <MeasureBadge
                 value={task.measureValue}
@@ -1782,11 +2193,7 @@ function TaskRow({ task, index, ops, drag, onEdit, dragEnabled = true }) {
 
       {expanded && (
         <div className="pb-3">
-          <SubtaskList
-            parentId={task.id}
-            subtasks={task.subtasks}
-            onToggleSub={ops.toggleSub}
-          />
+          <SubtaskList taskId={task.id} subtasks={task.subtasks} ops={ops} />
         </div>
       )}
     </li>
@@ -2083,6 +2490,7 @@ function CalendarView({ tasks, onEdit, onToggle }) {
                   <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     <SideBadge side={task.side} marks={task.marks} />
                     <CategoryChip id={task.category} />
+                    <VehicleChip id={task.vehicleId} />
                     <MoneyBadge amount={task.amount} categoryId={task.category} />
                     <MeasureBadge
                       value={task.measureValue}
@@ -2253,6 +2661,7 @@ function TimelineView({ events }) {
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <SideBadge side={ev.side} marks={0} />
                       <CategoryChip id={ev.category} />
+                      <VehicleChip id={ev.vehicleId} />
                       <MoneyBadge amount={ev.amount} categoryId={ev.category} />
                       <MeasureBadge
                         value={ev.measureValue}
@@ -2542,12 +2951,66 @@ function CategorySettingRow({ c, onUpdate, onRemove, onSetTags }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MODULE: VehicleSettingRow — one saved vehicle in Settings, with
+// inline-editable fields and delete. No template system needed here
+// (unlike categories) — vehicles are a flat, simple garage list.
+// ─────────────────────────────────────────────────────────────
+function VehicleSettingRow({ v, onUpdate, onRemove }) {
+  return (
+    <div className="bd space-y-2 rounded-lg border p-2">
+      <div className="flex items-center gap-2">
+        <Car size={15} className="txt-soft shrink-0" />
+        <input
+          value={v.label}
+          onChange={(e) => onUpdate(v.id, { label: e.target.value })}
+          placeholder="Nickname"
+          className="ph bd txt focus-accent flex-1 rounded-lg border bg-transparent px-2 py-1.5 text-sm outline-none"
+        />
+        <button
+          onClick={() => onRemove(v.id)}
+          aria-label={`Delete ${vehicleLabel(v)}`}
+          className="txt-faint hover-danger shrink-0 p-1 transition"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          value={v.make}
+          onChange={(e) => onUpdate(v.id, { make: e.target.value })}
+          placeholder="Make"
+          className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+        />
+        <input
+          value={v.model}
+          onChange={(e) => onUpdate(v.id, { model: e.target.value })}
+          placeholder="Model"
+          className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+        />
+        <input
+          value={v.year}
+          onChange={(e) => onUpdate(v.id, { year: e.target.value })}
+          placeholder="Year"
+          className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+        />
+        <input
+          value={v.plate}
+          onChange={(e) => onUpdate(v.id, { plate: e.target.value })}
+          placeholder="Plate"
+          className="ph bd txt focus-accent rounded-lg border bg-transparent px-2 py-1.5 text-xs outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MODULE: SettingsPanel — the settings surface (hosted in a Modal).
 // Sections: Appearance (dark + editable accent palette) and
 // Categories (full CRUD + per-category templates).
 // ─────────────────────────────────────────────────────────────
 function SettingsPanel({
-  theme, categories, onClose, onResetData, onBuildBackup, onApplyBackup,
+  theme, categories, vehicles, onClose, onResetData, onBuildBackup, onApplyBackup,
 }) {
   const [armReset, setArmReset] = useState(false);
   const fileRef = useRef(null);
@@ -2735,6 +3198,36 @@ function SettingsPanel({
           className="bd-strong txt-muted hover-accent-bd hover-accent flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs font-medium transition"
         >
           <Plus size={15} /> Add category
+        </button>
+      </section>
+
+      {/* ── Vehicles ── */}
+      <section className="space-y-3">
+        <h3 className="txt-muted text-[11px] font-semibold uppercase tracking-wide">
+          Vehicles
+        </h3>
+
+        <div className="space-y-2">
+          {vehicles.vehicles.map((v) => (
+            <VehicleSettingRow
+              key={v.id}
+              v={v}
+              onUpdate={vehicles.update}
+              onRemove={vehicles.remove}
+            />
+          ))}
+          {vehicles.vehicles.length === 0 && (
+            <p className="txt-soft text-xs">
+              No vehicles yet — add one here, or from a task's Auto category picker.
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={() => vehicles.add({})}
+          className="bd-strong txt-muted hover-accent-bd hover-accent flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs font-medium transition"
+        >
+          <Plus size={15} /> Add vehicle
         </button>
       </section>
 
@@ -2959,6 +3452,7 @@ export default function App({ session } = {}) {
   const t = useTasks();
   const theme = useTheme();
   const cats = useCategories();
+  const vehicles = useVehicles();
   const dragFrom = useRef(null);
   const [overIndex, setOverIndex] = useState(null);
   const [composing, setComposing] = useState(false);
@@ -3089,6 +3583,7 @@ export default function App({ session } = {}) {
     time: task.time,
     repeat: task.repeat,
     category: task.category || "",
+    vehicleId: task.vehicleId || "",
     amount: task.amount || "",
     measureValue: task.measureValue || "",
     measureUnit: task.measureUnit || "",
@@ -3109,13 +3604,17 @@ export default function App({ session } = {}) {
       exportedAt: nowISO(),
       state: { tasks: t.tasks, events: t.events, score: t.score },
       categories: cats.categories,
+      vehicles: vehicles.vehicles,
       theme: {
         dark: theme.dark,
         accentIndex: theme.accentIndex,
         palette: theme.palette,
       },
     }),
-    [t.tasks, t.events, t.score, cats.categories, theme.dark, theme.accentIndex, theme.palette]
+    [
+      t.tasks, t.events, t.score, cats.categories, vehicles.vehicles,
+      theme.dark, theme.accentIndex, theme.palette,
+    ]
   );
 
   // accepts a parsed backup object; returns true if applied
@@ -3127,6 +3626,9 @@ export default function App({ session } = {}) {
       if (Array.isArray(backup?.categories)) {
         const clean = backup.categories.filter((c) => c && c.id && c.label);
         if (clean.length) cats.setAll(clean);
+      }
+      if (Array.isArray(backup?.vehicles)) {
+        vehicles.setAll(backup.vehicles.filter((v) => v && v.id));
       }
       const th = normalizeTheme(backup?.theme);
       if (th) theme.setAll(th);
@@ -3146,6 +3648,7 @@ export default function App({ session } = {}) {
 
   return (
     <CategoriesContext.Provider value={cats.categories}>
+    <VehiclesContext.Provider value={vehicles.vehicles}>
     <div
       className={`app-bg min-h-screen px-4 py-10 ${theme.dark ? "theme-dark" : ""}`}
       style={{ "--accent": theme.accentValue, colorScheme: theme.dark ? "dark" : "light" }}
@@ -3240,6 +3743,7 @@ export default function App({ session } = {}) {
                   }}
                   onCancel={() => setComposing(false)}
                   onAddCategoryTag={cats.addCategoryTag}
+                  onAddVehicle={vehicles.add}
                 />
               ) : (
                 <button
@@ -3308,6 +3812,7 @@ export default function App({ session } = {}) {
             }}
             onCancel={() => setEditing(null)}
             onAddCategoryTag={cats.addCategoryTag}
+            onAddVehicle={vehicles.add}
             timestamps={{
               createdAt: editing.createdAt,
               completedAt: editing.completedAt,
@@ -3321,6 +3826,7 @@ export default function App({ session } = {}) {
           <SettingsPanel
             theme={theme}
             categories={cats}
+            vehicles={vehicles}
             onClose={() => setSettingsOpen(false)}
             onBuildBackup={buildBackup}
             onApplyBackup={applyBackup}
@@ -3328,8 +3834,10 @@ export default function App({ session } = {}) {
               await storage.remove(STORAGE_KEY);
               await storage.remove(THEME_KEY);
               await storage.remove(CATEGORIES_KEY);
+              await storage.remove(VEHICLES_KEY);
               t.resetTo(emptyState());
               cats.resetAll();
+              vehicles.resetAll();
               theme.resetAll();
               setSettingsOpen(false);
             }}
@@ -3347,6 +3855,7 @@ export default function App({ session } = {}) {
         onDismiss={() => setToastOpen(false)}
       />
     </div>
+    </VehiclesContext.Provider>
     </CategoriesContext.Provider>
   );
 }
